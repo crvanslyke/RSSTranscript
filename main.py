@@ -6,6 +6,7 @@ import sys
 import datetime
 import re
 import json
+import csv
 from bs4 import BeautifulSoup
 
 def sanitize_filename(filename):
@@ -52,7 +53,14 @@ def get_transcripts(rss_url, output_base='downloads'):
     fail_count = 0
 
     log_path = os.path.join(output_dir, "download_log.txt")
+    csv_path = os.path.join(output_dir, "skipped_episodes.csv")
     
+    # Initialize CSV if it doesn't exist
+    if not os.path.exists(csv_path):
+        with open(csv_path, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(["Episode Title", "Reason", "Date", "Details"])
+
     with open(log_path, 'a', encoding='utf-8') as log_file:
         log_file.write(f"--- Run started at {datetime.datetime.now()} ---\n")
 
@@ -99,6 +107,11 @@ def get_transcripts(rss_url, output_base='downloads'):
                 msg = f"No transcript found for: {episode_title}"
                 # print(f"Skipping: {episode_title} (No transcript tag)") # Optional: reduce noise
                 log_file.write(f"SKIP [No Tag]: {episode_title}\n")
+                
+                with open(csv_path, 'a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([episode_title, "No Tag", date_prefix, "No podcast:transcript tag found"])
+                
                 skip_count += 1
                 continue
 
@@ -155,6 +168,11 @@ def get_transcripts(rss_url, output_base='downloads'):
             except Exception as e:
                 print(f"Failed to download {episode_title}: {e}")
                 log_file.write(f"ERROR: {episode_title} - {e}\n")
+                
+                with open(csv_path, 'a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([episode_title, "Download Error", date_prefix, str(e)])
+                
                 fail_count += 1
 
     print(f"\nDone. Success: {success_count}, Skipped: {skip_count}, Failed: {fail_count}")
