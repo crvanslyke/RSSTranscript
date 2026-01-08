@@ -6,6 +6,7 @@ import sys
 import datetime
 import re
 import json
+from bs4 import BeautifulSoup
 
 def sanitize_filename(filename):
     """Sanitize the filename to be safe for filesystems."""
@@ -132,6 +133,24 @@ def get_transcripts(rss_url, output_base='downloads'):
                 
                 log_file.write(f"SUCCESS: {episode_title} -> {filename}\n")
                 success_count += 1
+
+                # If HTML, convert to clean text
+                if ext == ".html":
+                    try:
+                        soup = BeautifulSoup(response.content, 'html.parser')
+                        text_content = soup.get_text(separator='\n\n').strip()
+                        
+                        txt_filename = filename.replace('.html', '.txt')
+                        txt_path = os.path.join(output_dir, txt_filename)
+                        
+                        with open(txt_path, 'w', encoding='utf-8') as f:
+                            f.write(text_content)
+                            
+                        print(f"       Converted to: {txt_filename}")
+                        log_file.write(f"CONVERT: {filename} -> {txt_filename}\n")
+                    except Exception as e:
+                        print(f"       Failed to convert to text: {e}")
+                        log_file.write(f"CONVERT_FAIL: {filename} - {e}\n")
 
             except Exception as e:
                 print(f"Failed to download {episode_title}: {e}")
