@@ -17,6 +17,36 @@ def sanitize_filename(filename):
     # Let's just strip leading/trailing whitespace.
     return s.strip()
 
+def create_aggregated_file(output_dir, podcast_title):
+    """Aggregate all .txt files into one master file."""
+    txt_files = sorted([f for f in os.listdir(output_dir) if f.endswith('.txt') and "All_Transcripts" not in f])
+    
+    if not txt_files:
+        return
+
+    agg_filename = f"{sanitize_filename(podcast_title)}_All_Transcripts.txt"
+    agg_path = os.path.join(output_dir, agg_filename)
+    
+    print(f"\nCreating aggregated file: {agg_filename}")
+    
+    with open(agg_path, 'w', encoding='utf-8') as outfile:
+        outfile.write(f"AGGREGATED TRANSCRIPTS FOR: {podcast_title}\n")
+        outfile.write(f"Generated: {datetime.datetime.now()}\n")
+        outfile.write("="*80 + "\n\n")
+        
+        for fname in txt_files:
+            file_path = os.path.join(output_dir, fname)
+            try:
+                with open(file_path, 'r', encoding='utf-8') as infile:
+                    content = infile.read()
+                    
+                outfile.write(f"EPISODE: {fname}\n")
+                outfile.write("-" * 80 + "\n")
+                outfile.write(content)
+                outfile.write("\n\n" + "="*80 + "\n\n")
+            except Exception as e:
+                print(f"Error reading {fname}: {e}")
+
 def get_transcripts(rss_url, output_base='downloads'):
     print(f"Parsing feed: {rss_url}")
     
@@ -176,6 +206,9 @@ def get_transcripts(rss_url, output_base='downloads'):
                 fail_count += 1
 
     print(f"\nDone. Success: {success_count}, Skipped: {skip_count}, Failed: {fail_count}")
+
+    # Aggregate transcripts
+    create_aggregated_file(output_dir, podcast_title)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Download podcast transcripts from an RSS feed.")
