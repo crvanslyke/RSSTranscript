@@ -17,6 +17,11 @@ def sanitize_filename(filename):
     # Let's just strip leading/trailing whitespace.
     return s.strip()
 
+def html_to_text(html_content):
+    """Convert HTML content to clean plain text."""
+    soup = BeautifulSoup(html_content, 'html.parser')
+    return soup.get_text(separator='\n\n').strip()
+
 def create_aggregated_file(output_dir, podcast_title):
     """Aggregate all .txt files into one master file."""
     # Exclude the aggregated file itself AND the download log
@@ -164,8 +169,13 @@ def get_transcripts(rss_url, output_base='downloads'):
             
             filename = f"{date_prefix}_{safe_title}{ext}"
             file_path = os.path.join(output_dir, filename)
+            
+            # If it's HTML, we only care if the .txt version exists
+            check_path = file_path
+            if ext == ".html":
+                check_path = file_path.replace('.html', '.txt')
 
-            if os.path.exists(file_path):
+            if os.path.exists(check_path):
                 # print(f"Exists: {filename}")
                 log_file.write(f"SKIP [Exists]: {episode_title}\n")
                 skip_count += 1
@@ -180,26 +190,26 @@ def get_transcripts(rss_url, output_base='downloads'):
                 with open(file_path, 'wb') as f:
                     f.write(response.content)
                 
-                log_file.write(f"SUCCESS: {episode_title} -> {filename}\n")
-                success_count += 1
-
-                # If HTML, convert to clean text
                 if ext == ".html":
-                    try:
-                        soup = BeautifulSoup(response.content, 'html.parser')
-                        text_content = soup.get_text(separator='\n\n').strip()
-                        
-                        txt_filename = filename.replace('.html', '.txt')
-                        txt_path = os.path.join(output_dir, txt_filename)
-                        
-                        with open(txt_path, 'w', encoding='utf-8') as f:
-                            f.write(text_content)
-                            
-                        print(f"       Converted to: {txt_filename}")
-                        log_file.write(f"CONVERT: {filename} -> {txt_filename}\n")
-                    except Exception as e:
-                        print(f"       Failed to convert to text: {e}")
-                        log_file.write(f"CONVERT_FAIL: {filename} - {e}\n")
+                    # Parse HTML to text
+                    text_content = html_to_text(response.content)
+                    
+                    txt_filename = filename.replace('.html', '.txt')
+                    txt_path = os.path.join(output_dir, txt_filename)
+
+                    # Save as .txt
+                    with open(txt_path, 'w', encoding='utf-8') as f:
+                        f.write(text_content)
+                    
+                    print(f"       Converted to: {txt_filename}")
+                    log_file.write(f"SUCCESS: {episode_title} -> {txt_filename} (from HTML)\n")
+                    success_count += 1
+                else:
+                    with open(file_path, 'wb') as f:
+                        f.write(response.content)
+                    
+                    log_file.write(f"SUCCESS: {episode_title} -> {filename}\n")
+                    success_count += 1
 
             except Exception as e:
                 print(f"Failed to download {episode_title}: {e}")

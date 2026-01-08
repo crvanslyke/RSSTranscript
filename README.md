@@ -46,7 +46,6 @@ python main.py https://feeds.captivate.fm/live-well-and-flourish/
 ## Output
 Files are saved in the `downloads/` directory, organized by Podcast Title.
 
-- **`{Date}_{Title}.html`**: Raw transcript (if available).
 - **`{Date}_{Title}.txt`**: Cleaned plain text transcript.
 - **`{Podcast}_All_Transcripts.txt`**: Aggregated file containing ALL transcripts for easy ingestion.
 - **`skipped_episodes.csv`**: Log of episodes that could not be downloaded.
