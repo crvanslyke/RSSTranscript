@@ -19,7 +19,13 @@ def sanitize_filename(filename):
 
 def create_aggregated_file(output_dir, podcast_title):
     """Aggregate all .txt files into one master file."""
-    txt_files = sorted([f for f in os.listdir(output_dir) if f.endswith('.txt') and "All_Transcripts" not in f])
+    # Exclude the aggregated file itself AND the download log
+    txt_files = sorted([
+        f for f in os.listdir(output_dir) 
+        if f.endswith('.txt') 
+        and "All_Transcripts" not in f
+        and f != "download_log.txt"
+    ])
     
     if not txt_files:
         return
